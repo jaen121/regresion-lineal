@@ -1,0 +1,10 @@
+"0","library(dplyr)"
+"0","library(readxl)"
+"0","library(data.table)"
+"0","library(paqueteMET)"
+"0","library(writexl)#libreria para guardar el archivo como excel."
+"0",""
+"0","data <- readRDS(""Datos/vivienda4.RDS"")"
+"2","cannot open compressed file 'Datos/vivienda4.RDS', probable reason 'No such file or directory'"
+"2","Error in gzfile(file, ""rb"") : no se puede abrir la conexión
+"

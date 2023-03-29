@@ -1,0 +1,105 @@
+---
+title: "Tarea 3."
+author: "Jairo Enrique Alba"
+date: "25/3/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Análisis Exploratorio de las Variables
+
+```{r}
+library(dplyr)
+library(readxl)
+library(data.table)
+library(paqueteMET)
+library(writexl)#libreria para guardar el archivo como excel.
+
+data <- readRDS("Datos/vivienda4.RDS")
+
+# Realice un análisis exploratorio de las variables precio de vivienda (millones de pesos COP)
+# y área de la vivienda (metros cuadrados) - incluir gráficos e indicadores apropiados interpretados.
+
+# Medidas de centralidad para el precio
+promedio <- mean(data$preciom,na.rm = T)
+mediana <- median(data$preciom,na.rm = T)
+# moda (con datos agrupados en intervalos usando el caso de igual longitud de intervalos)
+
+# Medidas de variabilidad para el precio
+coef_apertura <- max(data$preciom, na.rm = T)/min(data$preciom,na.rm = T)
+varianza <- var(data$preciom, na.rm = T)
+desv_estandar <- sd(data$preciom, na.rm = T)
+CV <- round(100*desv_estandar/promedio,2)
+
+# Coeficiente de asimertria y curtosis para el precio
+CA <- mean((data$preciom - promedio)^3)/(mean((data$preciom - promedio)^2))^(3/2)
+CC <- mean((data$preciom - promedio)^4)/(mean((data$preciom - promedio)^2))^(2) - 3
+
+
+
+# Medidas de posicion para el precio
+Q1 <- quantile(data$preciom, probs = 0.25, type = 6)
+Q2 <- quantile(data$preciom, probs = 0.50, type = 6)
+Q3 <- quantile(data$preciom, probs = 0.75, type = 6)
+
+
+# Tabla resumen para el precio
+tb_resumen <- data.frame(
+  Minimo = min(data$preciom, na.rm = T),
+  Q1 = Q1,
+  Q2 = Q2,
+  Promedio = promedio,
+  Mediana = mediana,
+  Q3 = Q3,
+  Maximo = max(data$preciom, na.rm = T),
+  Coef_apertura = coef_apertura,
+  varianza = varianza,
+  Desv.Estandar = desv_estandar,
+  Coef.Variacion = CV,
+  Coef.Asimetria = CA,
+  Coef.Curtosis = CC
+)
+
+tb_resumen
+#saveRDS(tb_resumen, "Resultados/tb_resumen.rds")
+#write_xlsx(tb_resumen,"Resultados/AED_precio.xlsx")
+
+library(ggplot2)
+
+# Histograma para el precio
+hist(data$preciom, freq = FALSE,main = "Distribución del Precio de las Viviendas",
+     xlab = "Precio dela vivienda", ylab = "Conteo", col = "green")
+
+
+lines(density(data$preciom),col="red",lwd=2)
+
+curve(dnorm(x,mean=mean(data$preciom),sd=sd(data$preciom)), from=0,to=1000, 
+      add=TRUE, col="blue", lwd=2)
+
+legend("topleft",col=c("blue","red"),legend =c("Densidad normal estimada","Estimador de núcleo de la densidad"),lwd=2, bty = "n")
+
+
+# Diagrama de caja para el precio
+boxplot(data$preciom, main = "Distribución del Precio de las Viviendas",
+        xlab = "Precio dela vivienda", ylab = "Conteo", col = "green")
+
+# Datos atípicos para el precio
+
+bi <- Q1 - 1.5*(Q3 - Q1)
+
+bi1 <- max(bi,78)
+bi1
+# bigote inferior es 78
+
+
+bs <- Q3 + 1.5*(Q3 - Q1)
+bs2<- min(bs,760)
+bs2
+#bigote superior  es 422.5
+
+
+```
+

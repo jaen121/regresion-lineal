@@ -1,0 +1,332 @@
+---
+title: "Untitled"
+author: "Jairo Enrique Alba"
+date: "25/3/2023"
+output: pdf_document
+---
+
+
+## Análisis Exploratorio de Variables
+
++  **Análisis Exploratorio de la Variable Precio de  la Vivienda**
+
+```{r}
+library(dplyr)
+library(readxl)
+library(data.table)
+library(paqueteMET)
+library(writexl)#libreria para guardar el archivo como excel.
+
+data <- readRDS("Datos/vivienda4.RDS")
+
+# Realice un análisis exploratorio de las variables precio de vivienda (millones de pesos COP)
+# y área de la vivienda (metros cuadrados) - incluir gráficos e indicadores apropiados interpretados.
+
+# Medidas de centralidad para el precio
+promedio <- mean(data$preciom,na.rm = T)
+mediana <- median(data$preciom,na.rm = T)
+# moda (con datos agrupados en intervalos usando el caso de igual longitud de intervalos)
+
+# Medidas de variabilidad para el precio
+coef_apertura <- max(data$preciom, na.rm = T)/min(data$preciom,na.rm = T)
+varianza <- var(data$preciom, na.rm = T)
+desv_estandar <- sd(data$preciom, na.rm = T)
+CV <- round(100*desv_estandar/promedio,2)
+
+# Coeficiente de asimertria y curtosis para el precio
+CA <- mean((data$preciom - promedio)^3)/(mean((data$preciom - promedio)^2))^(3/2)
+CC <- mean((data$preciom - promedio)^4)/(mean((data$preciom - promedio)^2))^(2) - 3
+
+
+
+# Medidas de posicion para el precio
+Q1 <- quantile(data$preciom, probs = 0.25, type = 6)
+Q2 <- quantile(data$preciom, probs = 0.50, type = 6)
+Q3 <- quantile(data$preciom, probs = 0.75, type = 6)
+
+
+# Tabla resumen para el precio
+tb_resumen <- data.frame(
+  Minimo = min(data$preciom, na.rm = T),
+  Q1 = Q1,
+  Q2 = Q2,
+  Promedio = promedio,
+  Mediana = mediana,
+  Q3 = Q3,
+  Maximo = max(data$preciom, na.rm = T),
+  Coef_apertura = coef_apertura,
+  varianza = varianza,
+  Desv.Estandar = desv_estandar,
+  Coef.Variacion = CV,
+  Coef.Asimetria = CA,
+  Coef.Curtosis = CC
+)
+print(paste(" El analisis exploratorio de datos nos arrojo los siguientes resultados:"))
+
+tb_resumen
+saveRDS(tb_resumen, "Resultados/tb_resumen.rds")
+#write_xlsx(tb_resumen,"Resultados/AED_precio.xlsx")
+
+```
+
+| Estadístico       | Valor   | 
+|-------------------|-------------|
+| Mínimo            | 78    | 
+| Cuartil 1        | 160       | 
+| Cuartil 2 = Mediana | 210 | 
+| Promedio         | 255.3746 | 
+| Cuartil 3        | 265 |
+| Máximo         | 760 |
+| Varianza         | 7376.274 |
+| Desviación estándar         | 85.8853 |
+| Coeficiente de Variación        | 38.11% |
+| Coeficiente de asimetría         | 1.4908 |
+| Curtosis         | 3.5731 |
+
+De las medidas encontradas evidenciamos un precio mínimo y maximo de las casas de 78 y 760 respectivamente con un promedio de precio de 255.38, además se observa que el 25%(427) de las casa presentaron un valor entre 78 y 160, mientras que el 50%(853) de las mismas tenian un precio entre 78 y 210, finalmente el 75%(1280) de las casas presentaron valores entre  78 y 265. Con lo descrito anteriormente se puede inferir que los precios de las casas se encuentran sesgados de manera positiva y lo podemos validar con el coeficiente de asimetría 1.49, por otro lado la curtosis nos informa que la distribución es leptocúrtica 3,5731. Con respecto a la dispersión de los precios se tienen unos valores de 7376.274 y 85.89 para la varianza y desvición estándar.
+
+```{r}
+library(ggplot2)
+
+# Histograma para el precio
+hist(data$preciom, freq = FALSE,main = "Distribución del Precio de las Viviendas",
+     xlab = "Precio dela vivienda", ylab = "Conteo", col = "green")
+
+
+lines(density(data$preciom),col="red",lwd=2)
+
+curve(dnorm(x,mean=mean(data$preciom),sd=sd(data$preciom)), from=0,to=1000, 
+      add=TRUE, col="blue", lwd=2)
+
+legend("topleft",col=c("blue","red"),legend =c("Densidad normal estimada","Estimador de núcleo de la densidad"),lwd=2, bty = "n")
+
+
+# Diagrama de caja para el precio
+boxplot(data$preciom, main = "Distribución del Precio de las Viviendas",
+        xlab = "Precio de la vivienda", ylab = "Conteo", col = "green", horizontal = TRUE)
+
+# Datos atípicos para el precio
+
+bi <- Q1 - 1.5*(Q3 - Q1)
+
+bi1 <- max(bi,78)
+bi1
+# bigote inferior es 78
+
+
+bs <- Q3 + 1.5*(Q3 - Q1)
+bs2<- min(bs,760)
+bs2
+#bigote superior  es 422.5
+
+```
+
+```{r}
+library(normtest) ###REALIZA 5 PRUEBAS DE NORMALIDAD###
+library(nortest) ###REALIZA 10 PRUEBAS DE NORMALIDAD###
+library(moments) ###REALIZA 1 PRUEBA DE NORMALIDAD###
+lillie.test(data$preciom)
+shapiro.test(data$preciom)
+```
+
+Las gráficas anteriores muestran una distribución sesgada positivamente, con la presencia de datos atípicos superiores los cuales los podemos evidenciar en el diagrama de cajas, dichos datos son aquellos precios de las casas superiores a 422.5, mediante la prueba de normalidad de Kolmogorov-Smirnov nos arrojo un p-valor de $2.2(10^{-16})$ confirmando que la distribución de los datos no es normal. 
+
+
++  **Análisis Exploratorio de la Variable área construida**
+
+```{r}
+# Medidas de centralidad para el área construida
+promedioa <- mean(data$areaconst,na.rm = T)
+medianaa <- median(data$areaconst,na.rm = T)
+# moda (con datos agrupados en intervalos usando el caso de igual longitud de intervalos)
+
+# Medidas de variabilidad para el área construida
+coef_aperturaa <- max(data$areaconst, na.rm = T)/min(data$areaconst,na.rm = T)
+varianzaa <- var(data$areaconst, na.rm = T)
+desv_estandara <- sd(data$areaconst, na.rm = T)
+CVa <- round(100*desv_estandara/promedioa,2)
+
+# Coeficiente de asimertria y curtosis para el área construida
+CAa <- mean((data$areaconst - promedioa)^3)/(mean((data$areaconst - promedioa)^2))^(3/2)
+CCa <- mean((data$areaconst - promedioa)^4)/(mean((data$areaconst - promedioa)^2))^(2) - 3
+
+
+
+# Medidas de posicion para el área construida
+Q1a <- quantile(data$areaconst, probs = 0.25, type = 6)
+Q2a <- quantile(data$areaconst, probs = 0.50, type = 6)
+Q3a <- quantile(data$areaconst, probs = 0.75, type = 6)
+
+
+# Tabla resumen para el área construida
+tb_resumen <- data.frame(
+  Minimoa = min(data$areaconst, na.rm = T),
+  Q1a = Q1a,
+  Q2a = Q2a,
+  Promedioa = promedioa,
+  Medianaa = medianaa,
+  Q3a = Q3a,
+  Maximoa = max(data$areaconst, na.rm = T),
+  Coef_aperturaa = coef_aperturaa,
+  varianzaa = varianzaa,
+  Desv.Estandara = desv_estandara,
+  Coef.Variaciona = CVa,
+  Coef.Asimetriaa = CAa,
+  Coef.Curtosisa = CCa
+)
+print(paste(" El analisis exploratorio de datos nos arrojo los siguientes resultados:"))
+tb_resumen
+#saveRDS(tb_resumen, "Resultados/tb_resumenareaconst.rds")
+#write_xlsx(tb_resumen,"Resultados/AED_areaconst.xlsx")
+```
+
+
+| Estadístico       | Valor   | 
+|-------------------|-------------|
+| Mínimo            | 40    | 
+| Cuartil 1        | 60       | 
+| Cuartil 2 = Mediana | 75 | 
+| Promedio         | 87.6295 | 
+| Cuartil 3        | 98 |
+| Máximo         | 200 |
+| Varianza         | 1321.069 |
+| Desviación estándar         | 36.3465 |
+| Coeficiente de Variación        | 41.48% |
+| Coeficiente de asimetría         | 1.533 |
+| Curtosis         | 1,683 |
+
+De las medidas encontradas evidenciamos un área de construcción mínima y maxima de las casas de 40 y 60 respectivamente con un promedio de área de 87.6295, además se observa que el 25%(427) de las casa presentaron un área entre 40  y 60, mientras que el 50%(853) de las mismas tenian un área entre 40 y 75, finalmente el 75%(1280) de las casas presentaron valores entre  40 y 98. Con lo descrito anteriormente se puede inferir que las áreas de las casas se encuentran sesgados de manera positiva y lo podemos validar con el coeficiente de asimetría 1.533, por otro lado la curtosis nos informa que la distribución es leptocúrtica 1,683. Con respecto a la dispersión de los precios se tienen unos valores de 1321.069 y 36.3465 para la varianza y desvición estándar.
+
+
+```{r}
+library(ggplot2)
+
+# Histograma para el área construida
+hist(data$areaconst, freq = FALSE,main = "Distribución del área construida",
+     xlab = "Área construida", ylab = "Conteo", col = "green")
+
+
+lines(density(data$areaconst),col="red",lwd=2)
+
+curve(dnorm(x,mean=mean(data$areaconst),sd=sd(data$areaconst)), from=0,to=1000, 
+      add=TRUE, col="blue", lwd=2)
+
+legend("topleft",col=c("blue","red"),legend =c("Densidad normal estimada","Estimador de núcleo de la densidad"),lwd=2, bty = "n")
+
+
+# Diagrama de caja para el área construida
+boxplot(data$areaconst, main = "Distribución del Precio de las Viviendas",
+        xlab = "Precio dela vivienda", ylab = "Conteo", col = "green", horizontal = TRUE)
+
+# Datos atípicos para el área construida
+
+bia <- Q1a - 1.5*(Q3a - Q1a)
+
+bi1a <- max(bia,40)
+bi1a
+# bigote inferior es 40
+
+bsa <- Q3a + 1.5*(Q3a - Q1a)
+bsa
+bs1a <- min(bsa,200)
+bs1a
+# bigote superior es 155
+```
+
+```{r}
+library(normtest) ###REALIZA 5 PRUEBAS DE NORMALIDAD###
+library(nortest) ###REALIZA 10 PRUEBAS DE NORMALIDAD###
+library(moments) ###REALIZA 1 PRUEBA DE NORMALIDAD###
+lillie.test(data$areaconst)
+shapiro.test(data$areaconst)
+```
+Las gráficas anteriores muestran una distribución sesgada positivamente, con la presencia de datos atípicos superiores los cuales los podemos evidenciar en el diagrama de cajas, dichos datos son aquellos precios de las casas superiores a 155, mediante la prueba de normalidad de Kolmogorov-Smirnov nos arrojo un p-valor de $2.2(10^{-16})$ confirmando que la distribución de los datos no es normal. 
+
+
+## Para un mejor modelo excluimos los datos atípicos
+```{r}
+
+# Datos sin datos atípicos
+
+data1=subset(data, (data$preciom < 422.5  & data$areaconst < 155))
+
+# pairs(data1) # para hacer gráficas cruzando las variables 
+```
+
+
+## Análisis Exploratorio Bivariado
+
+### Nube de Puntos o gráfica de dispersión
+
+A continuación elaboramos la gráfica de puntos o de dispersión para análizar de manera gráfica si existe algún tipo de correlación entre la variable área construida y el precio de la casa.
+
+```{r}
+# Gráfica de dispersión
+
+library(ggplot2)
+
+ggplot(data = data1, mapping = aes(x = areaconst, y = preciom)) +
+  geom_point(color = "firebrick", size = 2) +
+  labs(title = "Diagrama de dispersión", x = "Área Construida", y = "Precio") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+De la gráfica anterior podemos evidenciar una correlación lineal positiva (directa) entre las variables **área construida** como variable predictora y la variable **precio de la vivienda** como variable respuesta, es decir a mayor área construida mayor será el precio.
+
+```{r}
+# Analisis de la correlación
+
+cor.test(x = data1$areaconst, y = data1$preciom, method = "pearson", digits = 3)
+
+
+#install.packages("GGally")
+library(GGally)
+ggpairs(data1, lower = list(continuous = "smooth"), diag = list(continuous = "bar"), axisLabels = "none")
+
+
+```
+
+De la salida anterior podemos concluir que:
+
+I. Observando los gráficos de dispersión podemos observar que la variable areaconst (área construida) está  linealmente asociada con la variable respuesta preciom (precio de la vivienda), por lo que utilizaremos un modelo lineal.
+
+II. El coeficiente de correlación de Pearson es  alta (r = 0.729557) y significativo (p-value = 2.2e-16). Ello indica una correlación entre ambas variables alta. Lo cual lo verificamos con el intervalo de confianza (0.7053494,  0.7520650)
+
+III: Por lo tanto tiene sentido generar el modelo de regresión lineal ya que se cumplen los primeros requisitos.
+
+
+## Elaboración del modelo de regresión lineal simple
+
+A continuación estableceremos un modelo lineal simple para predecir el precio de las casas teniendo en cuenta el área construida, de la forma 
+
+\begin{center}
+$y = \beta_{1}x + \beta_{0}  + \epsilon$
+\end{center}
+
+donde x será el área de la casa e y el precio.
+
+Veamos
+
+```{r}
+# Cálculo del modelo de resesión lineal simple
+
+modelo.lineal <- lm(preciom ~ areaconst , data = data1)
+# Información del modelo
+summary(modelo.lineal)
+
+#Intervalo de confianza del modelo
+
+confint(modelo.lineal)
+
+
+```
+\begin{center}
+**Resumen del modelo**
+\end{center}
+
+El resumen del  modelo contiene los errores estándar, el valor del estadístico t  y el correspondiente p-value de ambos parámetros $\hat{β_{0}}$  y $\hat{β_{1}}$
+
+I.  El p-value nos permite determinar si los estimadores de los parámetros son significativamente distintos de 0, es decir, que contribuyen al modelo. El parámetro que suele ser más útil en estos modelos es la pendiente($\hat{β_{1}}$).
+
+
